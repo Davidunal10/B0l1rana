@@ -76,7 +76,7 @@ El diseño responde a una arquitectura híbrida síncrona dividida en bloques se
 
 ## Potencia del sistema
 
-La potencia total estimada que consume el sistema, según el programa Quartus Prime es de:  $61.26\text{ mW}$, siendo esto bastante seguro para cualquier circuito eléctrico uy electrónico.
+La potencia total estimada que consume el sistema, según el programa Quartus Prime es de:  $61.26\text{ mW}$, siendo esto bastante seguro para cualquier circuito eléctrico y electrónico.
 
 ---
 
