@@ -72,6 +72,13 @@ El diseño responde a una arquitectura híbrida síncrona dividida en bloques se
 > * La LCD 16×2 se alimenta a $5\text{ V}$ para asegurar el brillo de la luz de fondo, mientras que la FPGA controla `i2c_scl` e `i2c_sda` en alta impedancia (`1'bz` para nivel alto y `1'b0` para nivel bajo) evitando sobrevoltajes.
 > * Todos los periféricos comparten un nodo común de tierra (`GND`).
 
+---
+
+## Potencia del sistema
+
+La potencia total estimada que consume el sistema, según el programa Quartus Prime es de $61.26mW$, siendo esto bastante seguro para cualquier circuito eléctrico uy electrónico.
+
+---
 
 ## Autores
 
