@@ -1,13 +1,5 @@
-// ============================================================================
-// PROYECTO: BOLIRANA ELECTRÓNICA MULTIJUGADOR CON PANTALLA LCD I2C
-// TARJETA: ALTERA / INTEL CYCLONE IV (EP4CE6E22C8)
-// PROTOCOLO: I2C (SDA / SCL) -> CONTROLADOR PCF8574 (DIRECCIÓN 0x27)
-// LENGUAJE: VERILOG HDL (QUARTUS PRIME LITE)
-// ============================================================================
 
-// ----------------------------------------------------------------------------
 // 1. MÓDULO TOP-LEVEL
-// ----------------------------------------------------------------------------
 module proyecto_final_uno (
     input  wire       clk_50mhz,   // Reloj principal (Pin 23)
     input  wire       rst_n,       // Reset maestro activo en bajo
@@ -20,7 +12,6 @@ module proyecto_final_uno (
     output wire       buzzer        // Buzzer integrado, PIN_141, activo en bajo
 );
 
-    // Señales internas de interconexión
     wire [3:0]   clean_ir_pulses;
     wire         clean_btn_change;
     wire         clean_btn_next;
@@ -33,23 +24,20 @@ module proyecto_final_uno (
     wire [15:0]  active_score;
     wire [127:0] line1_text;
     wire [127:0] line2_text;
-    wire [1:0]   score_sfx;       // 0=ninguno, 1=40, 2=100, 3=150 puntos
-    wire         win_sfx;         // Pulso cuando se declara un ganador
+    wire [1:0]   score_sfx;       
+    wire         win_sfx;         
 
-
-    // 1. Decodificador de límite de puntaje por DIP Switches (Valor numérico y ASCII)
     limit_selector limit_inst (
         .sw_limit(sw_limit),
         .target_score(target_score),
         .target_ascii(target_ascii)
     );
-
-    // 2. Filtros con Lockout de 500 ms para sensores IR
+// Filtros de sensores
     genvar i;
     generate
         for (i = 0; i < 4; i = i + 1) begin : ir_sensor_filter
             ir_sensor_lockout #(
-                .LOCKOUT_CYCLES(32'd25_000_000) // 500 ms @ 50 MHz
+                .LOCKOUT_CYCLES(32'd25_000_000) 
             ) ir_filt (
                 .clk(clk_50mhz),
                 .reset_n(rst_n),
@@ -61,7 +49,7 @@ module proyecto_final_uno (
 
     // 3. Filtros antirrebote para botones de control (20 ms)
     button_debouncer #(
-        .STABLE_CYCLES(20'd1000000) // 20 ms @ 50 MHz
+        .STABLE_CYCLES(20'd1000000) 
     ) btn_chg_filt (
         .clk(clk_50mhz),
         .reset_n(rst_n),
@@ -70,7 +58,7 @@ module proyecto_final_uno (
     );
 
     button_debouncer #(
-        .STABLE_CYCLES(20'd1000000) // 20 ms @ 50 MHz
+        .STABLE_CYCLES(20'd1000000) 
     ) btn_nxt_filt (
         .clk(clk_50mhz),
         .reset_n(rst_n),
@@ -130,11 +118,9 @@ module proyecto_final_uno (
 
 endmodule
 
-// ----------------------------------------------------------------------------
 // 2. FILTRO SENSOR IR CON LOCKOUT DE 500 ms
-// ----------------------------------------------------------------------------
 module ir_sensor_lockout #(
-    parameter [31:0] LOCKOUT_CYCLES = 32'd25_000_000 // 500 ms @ 50 MHz
+    parameter [31:0] LOCKOUT_CYCLES = 32'd25_000_000 
 )(
     input  wire clk,
     input  wire reset_n,
@@ -188,11 +174,9 @@ module ir_sensor_lockout #(
 
 endmodule
 
-// ----------------------------------------------------------------------------
 // 3. FILTRO ANTI-REBOTE PARA BOTONES MANUALES
-// ----------------------------------------------------------------------------
 module button_debouncer #(
-    parameter [19:0] STABLE_CYCLES = 20'd1000000 // 20 ms @ 50 MHz
+    parameter [19:0] STABLE_CYCLES = 20'd1000000 
 )(
     input  wire clk,
     input  wire reset_n,
@@ -244,9 +228,8 @@ module button_debouncer #(
 
 endmodule
 
-// ----------------------------------------------------------------------------
 // 4. MÁQUINA DE ESTADOS Y LÓGICA DEL JUEGO
-// ----------------------------------------------------------------------------
+
 module multi_player_game_fsm (
     input  wire        clk,
     input  wire        reset_n,
@@ -254,13 +237,13 @@ module multi_player_game_fsm (
     input  wire        btn_next_pulse,
     input  wire [3:0]  ir_pulses,
     input  wire [15:0] target_score,
-    output reg  [2:0]  game_state,       // 0: Jugadores, 1: Meta, 2: Nombre, 3: Juego, 4: Victoria
+    output reg  [2:0]  game_state,       
     output reg  [1:0]  total_players,
     output reg  [1:0]  current_player,
     output reg  [23:0] active_name,
     output reg  [15:0] active_score,
-    output reg  [1:0]  score_sfx,      // Pulso que indica puntos realmente sumados
-    output reg         win_sfx         // Pulso de victoria, una sola vez
+    output reg  [1:0]  score_sfx,      
+    output reg         win_sfx         
 );
 
     localparam STATE_SETUP_PLAYERS = 3'd0;
@@ -286,8 +269,8 @@ module multi_player_game_fsm (
             total_players   <= 2'd0;
             current_player  <= 2'd0;
             char_idx        <= 2'd0;
-            curr_edit_char  <= 8'h41;      // 'A'
-            active_name     <= 24'h414141; // "AAA"
+            curr_edit_char  <= 8'h41;      
+            active_name     <= 24'h414141; 
             active_score    <= 16'd0;
             score_sfx       <= 2'd0;
             win_sfx         <= 1'b0;
@@ -299,7 +282,7 @@ module multi_player_game_fsm (
                 name_l2[k] <= 8'h41;
             end
         end else begin
-            // Los eventos de sonido duran solo un ciclo del reloj.
+
             score_sfx <= 2'd0;
             win_sfx   <= 1'b0;
 
@@ -419,16 +402,14 @@ module multi_player_game_fsm (
 
 endmodule
 
-// ----------------------------------------------------------------------------
 // 5. GENERADOR DE TEXTO LCD 16x2
-// ----------------------------------------------------------------------------
 module lcd_formatter (
     input  wire [2:0]   game_state,
     input  wire [1:0]   total_players,
     input  wire [1:0]   current_player,
     input  wire [23:0]  active_name,
     input  wire [15:0]  active_score,
-    input  wire [31:0]  target_ascii,  // Texto ASCII ("0500", "1000", etc.)
+    input  wire [31:0]  target_ascii,  
     output reg  [127:0] line1_text,
     output reg  [127:0] line2_text
 );
@@ -444,37 +425,36 @@ module lcd_formatter (
     always @(*) begin
         case (game_state)
             3'd0: begin
-                line1_text = {"NUM JUGADORES: ", char_num_p}; // 15 + 1 = 16 caracteres
-                line2_text = "CAMB:++   NXT:OK";              // 7 + 3 + 6 = 16 caracteres
+                line1_text = {"NUM JUGADORES: ", char_num_p}; 
+                line2_text = "CAMB:++   NXT:OK";              
             end
             3'd1: begin
-                line1_text = "PUNTAJE LIMITE  ";              // 16 caracteres exactos
-                line2_text = {"PTS: ", target_ascii, " NXT:OK"}; // 5 + 4 + 7 = 16 caracteres
+                line1_text = "PUNTAJE LIMITE  ";             
+                line2_text = {"PTS: ", target_ascii, " NXT:OK"}; 
             end
             3'd2: begin
-                line1_text = "PONGA INICIALES ";              // 16 caracteres exactos
-                line2_text = {"JUG_", char_jug_n, ": [", active_name[23:16], active_name[15:8], active_name[7:0], "]    "}; // 4+1+3+3+5 = 16 caracteres
+                line1_text = "PONGA INICIALES ";       
+                line2_text = {"JUG_", char_jug_n, ": [", active_name[23:16], active_name[15:8], active_name[7:0], "]    "}; 
             end
             3'd3: begin
-                line1_text = {"TURNO: JUG_", char_jug_n, " ", active_name[23:16], active_name[15:8], active_name[7:0]}; // 11+1+1+3 = 16 caracteres
-                line2_text = {"PTS: ", d3, d2, d1, d0, "       "}; // 5 + 4 + 7 = 16 caracteres
+                line1_text = {"TURNO: JUG_", char_jug_n, " ", active_name[23:16], active_name[15:8], active_name[7:0]}; 
+                line2_text = {"PTS: ", d3, d2, d1, d0, "       "}; 
             end
             3'd4: begin
-                line1_text = {" !GANADOR JUG_", char_jug_n, "!"}; // 14 + 1 + 1 = 16 caracteres
-                line2_text = {"     [", active_name[23:16], active_name[15:8], active_name[7:0], "]      "}; // 12 + 3 + 1 = 16 caracteres
+                line1_text = {" !GANADOR JUG_", char_jug_n, "!"}; 
+                line2_text = {"     [", active_name[23:16], active_name[15:8], active_name[7:0], "]      "}; 
             end
             default: begin
-                line1_text = "    BOLIRANA    ";              // 16 caracteres
-                line2_text = "   INICIANDO    ";              // 16 caracteres
+                line1_text = "    BOLIRANA    ";              
+                line2_text = "   INICIANDO    ";              
             end
         endcase
     end
 
 endmodule
 
-// ----------------------------------------------------------------------------
 // 6. CONTROLADOR MAESTRO I2C PARA LCD 16x2
-// ----------------------------------------------------------------------------
+
 module i2c_lcd_16x2_controller (
     input  wire         clk,
     input  wire         reset_n,
@@ -733,30 +713,21 @@ module limit_selector (
 
     always @(*) begin
         case (sw_active)
-            3'b000: begin target_score = 16'd1000; target_ascii = "1000"; end // 0: Desactivados (Default)
-            3'b001: begin target_score = 16'd500;  target_ascii = "0500"; end // 1 lógico
-            3'b010: begin target_score = 16'd1000; target_ascii = "1000"; end // 2 lógico
-            3'b011: begin target_score = 16'd1500; target_ascii = "1500"; end // 3 lógico
-            3'b100: begin target_score = 16'd2000; target_ascii = "2000"; end // 4 lógico
-            3'b101: begin target_score = 16'd2500; target_ascii = "2500"; end // 5 lógico
-            3'b110: begin target_score = 16'd3000; target_ascii = "3000"; end // 6 lógico
-            3'b111: begin target_score = 16'd3500; target_ascii = "3500"; end // 7 lógico (Todos activados)
+            3'b000: begin target_score = 16'd1000; target_ascii = "1000"; end 
+            3'b001: begin target_score = 16'd500;  target_ascii = "0500"; end
+            3'b010: begin target_score = 16'd1000; target_ascii = "1000"; end 
+            3'b011: begin target_score = 16'd1500; target_ascii = "1500"; end 
+            3'b100: begin target_score = 16'd2000; target_ascii = "2000"; end
+            3'b101: begin target_score = 16'd2500; target_ascii = "2500"; end 
+            3'b110: begin target_score = 16'd3000; target_ascii = "3000"; end 
+            3'b111: begin target_score = 16'd3500; target_ascii = "3500"; end 
             default: begin target_score = 16'd1000; target_ascii = "1000"; end
         endcase
     end
 endmodule
-// ----------------------------------------------------------------------------
+
 // 8. BUZZER INTEGRADO A-C4E6E10 (PIN_141)
-// ----------------------------------------------------------------------------
-// Se usa como buzzer ACTIVO (pitidos a partir de pulsos DC).
-// La etapa con transistor del esquematico se comanda con nivel bajo.
-// No se conecta ningun cable externo al buzzer.
-// Si la revision de la placa trae buzzer PASIVO, este modulo debe sustituirse
-// por uno que genere onda cuadrada en la frecuencia audible.
-//
-// Prioridad de avisos: victoria > puntos > confirmar > cambiar.
-// Si llegan eventos a la vez, se aplica la prioridad indicada.
-//-----------------------------------------------------------------------------
+
 module bolirana_buzzer (
     input  wire       clk,
     input  wire       reset_n,
@@ -795,11 +766,11 @@ module bolirana_buzzer (
             sounding   <= 1'b1;
             timer      <= 24'd0;
             if (score_sfx == 2'd3) begin
-                on_cycles  <= 24'd5_500_000; // 110 ms
-                off_cycles <= 24'd3_500_000; // 70 ms
+                on_cycles  <= 24'd5_500_000; 
+                off_cycles <= 24'd3_500_000;
             end else begin
-                on_cycles  <= 24'd5_000_000; // 100 ms
-                off_cycles <= 24'd4_000_000; // 80 ms
+                on_cycles  <= 24'd5_000_000; 
+                off_cycles <= 24'd4_000_000; 
             end
         end else if (btn_next_pulse) begin
             // K5 / OK: 2 pitidos de 45 ms.
